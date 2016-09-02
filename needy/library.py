@@ -93,13 +93,17 @@ class Library:
         source = self.__get_configured_source()
         source.synchronize()
 
+    def status(self):
+        """ human-readable status string for the library """
+        return self.__get_configured_source().status()
+
     def __get_configured_source(self):
         if 'download' in self.__configuration:
-            source = Download(self.__configuration['download'], self.__configuration['checksum'], self.source_directory(), os.path.join(self.directory(), 'download'))
+            source = Download(self.source_directory(), self.__configuration['download'], self.__configuration['checksum'], os.path.join(self.directory(), 'download'))
         elif 'repository' in self.__configuration:
-            source = GitRepository(self.__configuration['repository'], self.__configuration['commit'], self.source_directory())
+            source = GitRepository(self.source_directory(), self.__configuration['repository'], self.__configuration['commit'])
         elif 'directory' in self.__configuration:
-            source = Directory(self.__configuration['directory'] if os.path.isabs(self.__configuration['directory']) else os.path.join(self.needy.path(), self.__configuration['directory']), self.source_directory())
+            source = Directory(self.source_directory(), self.__configuration['directory'] if os.path.isabs(self.__configuration['directory']) else os.path.join(self.needy.path(), self.__configuration['directory']))
         else:
             raise ValueError('no source specified in configuration')
 

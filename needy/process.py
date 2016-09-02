@@ -37,7 +37,6 @@ def command(cmd, verbosity=logging.INFO, environment_overrides={}):
 
 
 def command_output(cmd, verbosity=logging.INFO, environment_overrides={}):
-    logging.log(verbosity, __format_command(cmd))
     return __log_check_output(cmd, verbosity, env=__environment(environment_overrides))
 
 

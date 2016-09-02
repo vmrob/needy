@@ -21,31 +21,34 @@ from ..source import Source
 
 
 class Download(Source):
-    def __init__(self, url, checksum, destination, cache_directory):
-        Source.__init__(self)
-        self.url = url
-        self.checksum = checksum
-        self.destination = destination
-        self.cache_directory = cache_directory
-        self.local_download_path = os.path.join(cache_directory, checksum)
+    def __init__(self, destination, url, checksum, cache_directory):
+        Source.__init__(self, destination)
+        self.__url = url
+        self.__checksum = checksum
+        self.__cache_directory = cache_directory
+        self.__local_download_path = os.path.join(cache_directory, checksum)
+
+    @classmethod
+    def identifier(cls):
+        return 'download'
 
     def clean(self):
-        if not self.checksum:
+        if not self.__checksum:
             raise ValueError('checksums are required for downloads')
 
         self.__fetch()
 
-        print('Unpacking to %s' % self.destination)
+        print('Unpacking to %s' % self.source_directory())
         self.__clean_destination_dir()
         self.__unpack()
         self.__trim_lone_dirs()
 
     def __fetch(self):
-        if not os.path.exists(self.cache_directory):
-            os.makedirs(self.cache_directory)
+        if not os.path.exists(self.__cache_directory):
+            os.makedirs(self.__cache_directory)
 
-        if not os.path.isfile(self.local_download_path):
-            self.get(self.url, self.checksum, self.local_download_path)
+        if not os.path.isfile(self.__local_download_path):
+            self.get(self.__url, self.__checksum, self.__local_download_path)
 
     @classmethod
     def get(cls, url, checksum, destination):
@@ -120,38 +123,38 @@ class Download(Source):
             return expected == hash.digest()
 
     def __clean_destination_dir(self):
-        if os.path.exists(self.destination):
-            shutil.rmtree(self.destination)
-        os.makedirs(self.destination)
+        if os.path.exists(self.source_directory()):
+            shutil.rmtree(self.source_directory())
+        os.makedirs(self.source_directory())
 
     def __unpack(self):
-        if tarfile.is_tarfile(self.local_download_path):
+        if tarfile.is_tarfile(self.__local_download_path):
             self.__tarfile_unpack()
             return
-        if zipfile.is_zipfile(self.local_download_path):
+        if zipfile.is_zipfile(self.__local_download_path):
             self.__zipfile_unpack()
             return
 
     def __tarfile_unpack(self):
-        with open(self.local_download_path, 'rb') as file:
+        with open(self.__local_download_path, 'rb') as file:
             tar = tarfile.open(fileobj=file, mode='r|*')
-            tar.extractall(self.destination if isinstance(self.destination, str) else self.destination.encode(sys.getfilesystemencoding()))
+            tar.extractall(self.source_directory() if isinstance(self.source_directory(), str) else self.source_directory().encode(sys.getfilesystemencoding()))
             del tar
 
     def __zipfile_unpack(self):
-        with zipfile.ZipFile(self.local_download_path, 'r') as file:
-            file.extractall(self.destination)
+        with zipfile.ZipFile(self.__local_download_path, 'r') as file:
+            file.extractall(self.source_directory())
 
     def __trim_lone_dirs(self):
-        temporary_directory = os.path.join(self.cache_directory, 'temp_')
+        temporary_directory = os.path.join(self.__cache_directory, 'temp_')
 
         while True:
-            destination_contents = os.listdir(self.destination)
+            destination_contents = os.listdir(self.source_directory())
             if len(destination_contents) != 1:
                 break
-            lone_directory = os.path.join(self.destination, destination_contents[0])
+            lone_directory = os.path.join(self.source_directory(), destination_contents[0])
             if not os.path.isdir(lone_directory):
                 break
             shutil.move(lone_directory, temporary_directory)
-            shutil.rmtree(self.destination)
-            shutil.move(temporary_directory, self.destination)
+            shutil.rmtree(self.source_directory())
+            shutil.move(temporary_directory, self.source_directory())

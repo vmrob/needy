@@ -450,6 +450,15 @@ class Needy:
             logging.info('Synchronizing {}...'.format(name))
             libraries[0].synchronize_source()
 
+    def status(self, target, name):
+        """ human-readable status string for name """
+        if 'libraries' not in self.needs_configuration(target):
+            return
+
+        for name, libraries in self.libraries(target, filters=[name]).items():
+            assert len(libraries) == 1
+            return libraries[0].status()
+
     @staticmethod
     def __normalize_path(path):
         return path if os.path.isabs(path) else os.path.normpath(os.path.join(current_directory(), path))

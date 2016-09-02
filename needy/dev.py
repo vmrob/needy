@@ -43,13 +43,18 @@ def status(args=[]):
         description='Shows the status of libraries that are currently in dev mode.'
     )
     parser.add_argument('library', nargs='?', help='a library to check the status of')
+    parser.add_argument('-t', '--target', default='host', help='synchronize the source for this target (example: ios:armv7)')
+    parser.add_argument('-D', '--define', nargs='*', action='append', help='specify a user-defined variable to be passed to the needs file renderer')
     parameters = parser.parse_args(args)
 
     with ConfiguredNeedy('.', parameters) as needy:
         library_names = needy.development_mode_libraries()
         if parameters.library:
             if parameters.library in library_names:
-                logging.info('{} is in dev mode: {}'.format(parameters.library, needy.need_directory(parameters.library)))
+                status = needy.status(needy.target(parameters.target), parameters.library)
+                status = ' ({})'.format(status) if status else ''
+                directory = os.path.relpath(os.path.realpath(needy.need_directory(parameters.library)))
+                logging.info('{} is in dev mode: {}{}'.format(parameters.library, directory, status))
                 return 0
             else:
                 logging.info('{} is not in dev mode.'.format(parameters.library))
@@ -65,7 +70,10 @@ def status(args=[]):
             print('')
             max_name_length = max([len(name) for name in library_names])
             for name in library_names:
-                print('  {}{:{}} {}'.format(name, '', max_name_length - len(name) + 1, needy.need_directory(name)))
+                status = needy.status(needy.target(parameters.target), name)
+                status = ' ({})'.format(status) if status else ''
+                directory = os.path.relpath(os.path.realpath(needy.need_directory(name)))
+                print('  {}{:{}} {}{}'.format(name, '', max_name_length - len(name) + 1, directory, status))
             print('')
 
             return 0
